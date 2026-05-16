@@ -1,13 +1,13 @@
-from repo_loader import clone_repo
-from file_walker import get_files
+from worker.ingestion.repo_loader import clone_repo
+from worker.ingestion.file_walker import get_files
 
-from chunker import (
+from worker.ingestion.chunker import (
     chunk_code_file,
     chunk_markdown_file
 )
 
-from embedder import generate_embeddings
-from vector_store import store_chunks
+from worker.embeddings.embedder import generate_embeddings
+from retrieval.vector_store import store_chunks
 
 import json
 import os

@@ -1,18 +1,24 @@
-version: "3.9"
-
 services:
 
   backend:
-    build: ./backend
+    build: .
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      PYTHONPATH: /app
     depends_on:
       - postgres
       - redis
 
   worker:
-    build: ./backend
+    build: .
     command: celery -A worker.tasks worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      PYTHONPATH: /app
     depends_on:
       - redis
       - postgres
@@ -22,7 +28,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: RepoChat
+      POSTGRES_DB: ragdb
     ports:
       - "5432:5432"
 

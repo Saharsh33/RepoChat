@@ -2,16 +2,8 @@ from worker.celery_app import celery
 import time
 
 @celery.task
-def ingest_repo(url, repo_id):
+def ingest_repo(repo_url: str):
 
-    repo.status = "indexing"
+    from worker.ingestion.ingest import ingest_repo as ingest_repo_func
 
-    try:
-
-        time.sleep(10)
-
-        repo.status = "complete"
-
-    except Exception:
-
-        repo.status = "failed"
+    ingest_repo_func(repo_url)

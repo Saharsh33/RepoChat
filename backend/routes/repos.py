@@ -1,29 +1,19 @@
 from fastapi import APIRouter
+from pydantic import BaseModel
 from worker.tasks import ingest_repo
 
 router = APIRouter()
-
-@router.get("/repos")
-async def get_repos():
-
-    return [
-        {
-            "id": 1,
-            "name": "test-repo",
-            "status": "indexing"
-        }
-    ]
+class RepoCreateRequest(BaseModel):
+    github_url: str
 
 @router.post("/repos")
-async def add_repo():
+def create_repo(data: RepoCreateRequest):
 
-    repo_id = 1
-
-    ingest_repo.delay(
-        "https://github.com/test/repo",
-        repo_id
-    )
+    # trigger celery background task
+    task = ingest_repo.delay(data.github_url)
 
     return {
-        "message": "Indexing started"
+        "message": "Repository ingestion started",
+        "task_id": task.id,
+        "github_url": data.github_url
     }
