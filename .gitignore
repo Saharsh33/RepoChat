@@ -1,0 +1,7 @@
+backend/venv/
+venv/
+backend/repos/
+backend/chunks/
+backend/vector_db/
+__pycache__/
+*.pyc
