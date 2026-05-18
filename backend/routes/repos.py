@@ -1,19 +1,33 @@
-from fastapi import APIRouter
+from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from worker.tasks import ingest_repo
-
+from backend.database import SessionLocal
+from backend.schemas import RepoCreate
+from backend.services.repo_service import insert_repo
 router = APIRouter()
-class RepoCreateRequest(BaseModel):
-    github_url: str
+
+
+def get_db():
+
+    db = SessionLocal()
+
+    try:
+        yield db
+
+    finally:
+        db.close()
 
 @router.post("/repos")
-def create_repo(data: RepoCreateRequest):
+def create_repo(data: RepoCreate, db: Session = Depends(get_db)):
 
+    repo = insert_repo(db, data.github_url)
     # trigger celery background task
-    task = ingest_repo.delay(data.github_url)
+    ingest_repo.delay(repo.id)
 
     return {
         "message": "Repository ingestion started",
-        "task_id": task.id,
+        "repo_id": repo.id,
         "github_url": data.github_url
     }

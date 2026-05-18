@@ -1,6 +1,7 @@
 from worker.ingestion.repo_loader import clone_repo
 from worker.ingestion.file_walker import get_files
-
+from backend.database import SessionLocal
+from backend.models import Repo, Chunk
 from worker.ingestion.chunker import (
     chunk_code_file,
     chunk_markdown_file
@@ -14,56 +15,114 @@ import os
 import shutil
 
 
-def ingest_repo(repo_url: str):
+def ingest_repo(repo_id: int):
+    db = SessionLocal()
+    repo = None
+    try:
+        # Find repository row
+        repo = db.query(Repo).filter(Repo.id == repo_id).first()
 
-    # clone repo
-    repo_path = clone_repo(repo_url)
+        if not repo:
+            raise Exception("Repository not found")
 
-    # get all files
-    files = get_files(repo_path)
+        # Read GitHub URL
+        repo_url = repo.github_url
 
-    all_chunks = []
+        # Update status
+        repo.status = "indexing"
+        db.commit()
 
-    # process files
-    for file in files:
+        # clone repo
+        repo_path = clone_repo(repo_url)
 
-        print(f"Processing: {file}")
+        # get all files
+        files = get_files(repo_path)
 
-        if file.endswith((".md", ".rst", ".txt")):
+        all_chunks = []
+        chunk_objects = []
+        chunk_index = 0
 
-            chunks = chunk_markdown_file(file)
+        # process files
+        for file in files:
 
-        else:
+            print(f"Processing: {file}")
 
-            chunks = chunk_code_file(file)
+            if file.endswith((".md", ".rst", ".txt")):
 
-        all_chunks.extend(chunks)
+                chunks = chunk_markdown_file(file)
 
-    print(f"\nTotal chunks: {len(all_chunks)}")
+            else:
 
-    # save chunks locally
-    os.makedirs("chunks", exist_ok=True)
+                chunks = chunk_code_file(file)
 
-    with open("chunks/chunks.json", "w") as f:
+            for chunk in chunks:
 
-        json.dump(all_chunks, f, indent=2)
+                all_chunks.append(chunk)
 
-    # generate embeddings
-    print("\nGenerating embeddings...")
+                chunk_obj = Chunk(
+                    repo_id=repo.id,
+                    chunk_index=chunk_index,
+                    file_path=chunk.get("file", ""),
+                    chunk_type=chunk.get("type", ""),
+                    signature=chunk.get("signature"),
+                    start_line=chunk.get("start_line"),
+                    end_line=chunk.get("end_line"),
+                    content=chunk["content"]
+                )
 
-    embeddings = generate_embeddings(all_chunks)
+                chunk_objects.append(chunk_obj)
 
-    # store in chromadb
-    print("\nStoring in ChromaDB...")
+                chunk_index += 1
 
-    store_chunks(all_chunks, embeddings)
+        print(f"\nTotal chunks: {len(all_chunks)}")
 
-    # delete cloned repo
-    print("\nDeleting cloned repository...")
+        print("\nSaving chunks to Postgres...")
 
-    shutil.rmtree(repo_path)
+        db.add_all(chunk_objects)
 
-    print("Repository deleted")
+        db.commit()
 
-    print("\nDone")
+        print("Chunks saved")
+        repo.total_files = len(files)
+        repo.total_chunks = len(all_chunks)
+
+        db.commit()
+        # save chunks locally
+        os.makedirs("chunks", exist_ok=True)
+
+        with open("chunks/chunks.json", "w") as f:
+
+            json.dump(all_chunks, f, indent=2)
+
+        # generate embeddings
+        print("\nGenerating embeddings...")
+
+        embeddings = generate_embeddings(all_chunks)
+
+        # store in chromadb
+        print("\nStoring in ChromaDB...")
+
+        store_chunks(all_chunks, embeddings, repo.repo_name)
+
+        # delete cloned repo
+        print("\nDeleting cloned repository...")
+
+        shutil.rmtree(repo_path)
+
+        print("Repository deleted")
+
+        print("\nDone")
+
+        repo.status = "complete"
+        db.commit()
+
+    except Exception as e:
+        if 'repo' in locals() and repo:
+            repo.status = "failed"
+            repo.error_message = str(e)
+            db.commit()
+        raise
+
+    finally:
+        db.close()
 
