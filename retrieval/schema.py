@@ -34,3 +34,8 @@ class RetrievedChunkSchema:
     end_line: str
     chunk_type: ChunkType
     score: float
+
+class RetrievalMode(str, Enum):
+    SEMANTIC = "semantic"
+    KEYWORD = "keyword"
+    HYBRID = "hybrid"
