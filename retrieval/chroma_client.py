@@ -1,5 +1,8 @@
 import chromadb
+import os
 
-CHROMA_PATH = "./chroma_db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-client = chromadb.PersistentClient(CHROMA_PATH);
+VECTOR_DB_PATH = os.path.join(BASE_DIR, "vector_db")
+
+client = chromadb.PersistentClient(VECTOR_DB_PATH);

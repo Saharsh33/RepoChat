@@ -1,15 +1,9 @@
-import os
 import re
-from typing import List, Dict
 from retrieval.chroma_client import client
+from typing import List, Dict
 from retrieval.schema import ChunkSchema, ChunkType, RetrievedChunkSchema, RetrievalMode
 from worker.embeddings.embedder import get_model
 from rank_bm25 import BM25Okapi
-
-# Absolute stable path
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-VECTOR_DB_PATH = os.path.join(BASE_DIR, "vector_db")
 
 
 def get_collection(repo_id: str):
