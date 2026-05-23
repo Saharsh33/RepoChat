@@ -5,7 +5,7 @@ tree-sitter-languages==1.10.2
 
 chromadb
 numpy
-
+groq
 fastapi
 uvicorn
 sqlalchemy

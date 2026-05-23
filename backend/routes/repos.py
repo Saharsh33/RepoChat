@@ -6,6 +6,8 @@ from worker.tasks import ingest_repo
 from backend.database import SessionLocal
 from backend.schemas import RepoCreate
 from backend.services.repo_service import insert_repo
+from backend.services.chat_service import chat_with_repo
+from backend.schemas import ChatRequest
 router = APIRouter()
 
 
@@ -31,3 +33,13 @@ def create_repo(data: RepoCreate, db: Session = Depends(get_db)):
         "repo_id": repo.id,
         "github_url": data.github_url
     }
+@router.post("/chat")
+def chat(data: ChatRequest):
+
+    response = chat_with_repo(
+        repo_id=data.repo_id,
+        query=data.query,
+        history=data.history
+    )
+
+    return response

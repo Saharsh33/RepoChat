@@ -11,7 +11,8 @@ class Repo(Base):
 
     __tablename__ = "repos"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    #id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
     github_url = Column(Text, nullable=False, unique=True)
 
@@ -57,7 +58,7 @@ class Chunk(Base):
     )
 
     repo_id = Column(
-        String,
+        Integer,
         ForeignKey("repos.id", ondelete="CASCADE"),
         nullable=False
     )
@@ -90,7 +91,7 @@ class Message(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 
     repo_id = Column(
-        String,
+        Integer,
         ForeignKey("repos.id", ondelete="CASCADE"),
         nullable=False
     )

@@ -120,7 +120,7 @@ def ingest_repo(repo_id: int):
                 chunk_type=c_type
             ))
 
-        store_chunks(schema_chunks, embeddings, repo.repo_name)
+        store_chunks(schema_chunks, embeddings, str(repo.id))
 
         # delete cloned repo
         print("\nDeleting cloned repository...")
