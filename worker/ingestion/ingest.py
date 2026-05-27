@@ -131,12 +131,12 @@ def ingest_repo(repo_id: int):
 
         print("\nDone")
 
-        repo.status = "complete"
+        repo.status = "ready"
         db.commit()
 
     except Exception as e:
         if 'repo' in locals() and repo:
-            repo.status = "failed"
+            repo.status = "error"
             repo.error_message = str(e)
             db.commit()
         raise
