@@ -243,6 +243,13 @@ def retrieve(
                         ""
                     )
                 ),
+                chunk_type=enum_chunk_type,
+                signature=str(
+                    metadata.get(
+                        "signature", 
+                        ""
+                    )
+                ),
                 start_line=str(
                     metadata.get(
                         "start_line",
@@ -255,7 +262,6 @@ def retrieve(
                         "0"
                     )
                 ),
-                chunk_type=enum_chunk_type,
                 score=score
             )
         )

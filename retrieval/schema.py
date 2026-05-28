@@ -13,16 +13,18 @@ class ChunkSchema:
     id: str # for postgre to access
     content: str
     file_path: str
+    chunk_type: ChunkType
+    signature: str
     start_line: str
     end_line: str
-    chunk_type: ChunkType
 
     def to_metadata(self) -> dict:
         return {
             "file_path": self.file_path,
-            "start_line": self.start_line,
-            "end_line": self.end_line,
             "chunk_type": self.chunk_type.value,
+            "signature": self.signature,
+            "start_line": self.start_line,
+            "end_line": self.end_line
         }
     
 @dataclass
@@ -30,9 +32,10 @@ class RetrievedChunkSchema:
     id: str
     content: str
     file_path: str
+    chunk_type: ChunkType
+    signature: str
     start_line: str
     end_line: str
-    chunk_type: ChunkType
     score: float
 
 class RetrievalMode(str, Enum):
