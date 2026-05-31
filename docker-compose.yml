@@ -13,6 +13,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      - vector_db:/app/vector_db
       - huggingface_cache:/root/.cache/huggingface
     environment:
       PYTHONPATH: /app
@@ -31,6 +32,7 @@ services:
     command: celery -A worker.tasks worker --loglevel=info --concurrency=1
     volumes:
       - .:/app
+      - vector_db:/app/vector_db
       - huggingface_cache:/root/.cache/huggingface
     environment:
       PYTHONPATH: /app
@@ -60,3 +62,4 @@ services:
       - "6379:6379"
 volumes:
   huggingface_cache:
+  vector_db:
