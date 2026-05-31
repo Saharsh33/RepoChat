@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from worker.tasks import ingest_repo
+from worker.tasks import ingest_repo, delete_repo
 from backend.database import SessionLocal
 from backend.schemas import RepoCreate
 from backend.services.repo_service import insert_repo
@@ -54,6 +54,24 @@ def list_repos(db: Session = Depends(get_db), _key=Depends(require_api_key)):
         }
         for r in repos
     ]
+
+
+@router.delete("/repos/{repo_id}")
+def remove_repo(
+    repo_id: int,
+    db: Session = Depends(get_db),
+    _key=Depends(require_api_key),
+):
+    repo = db.query(Repo).filter(Repo.id == repo_id).first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repo not found")
+
+    delete_repo.delay(repo_id)
+
+    return {
+        "message": "Repository deletion started",
+        "repo_id": repo_id,
+    }
 
 
 @router.get("/repos/{repo_id}/status")

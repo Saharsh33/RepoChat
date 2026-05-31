@@ -4,7 +4,7 @@
 
 import hljs from 'highlight.js';
 import { marked } from 'marked';
-import { fetchRepos, addRepo, getRepoStatus, chatStream } from './api.js';
+import { fetchRepos, addRepo, deleteRepo, getRepoStatus, chatStream } from './api.js';
 
 // ---- State ----
 let repos = [];
@@ -12,6 +12,7 @@ let selectedRepoId = null;
 let chatHistory = [];
 let isStreaming = false;
 let statusPollingInterval = null;
+let contextMenuRepoId = null;
 
 // Configure marked
 marked.setOptions({
@@ -97,7 +98,85 @@ function renderRepoList() {
     el.addEventListener('click', () => {
       selectRepo(Number(el.dataset.repoId));
     });
+
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showRepoContextMenu(e.clientX, e.clientY, Number(el.dataset.repoId));
+    });
   });
+}
+
+function hideRepoContextMenu() {
+  const menu = document.getElementById('repo-context-menu');
+  if (menu) menu.style.display = 'none';
+  contextMenuRepoId = null;
+}
+
+function showRepoContextMenu(x, y, repoId) {
+  let menu = document.getElementById('repo-context-menu');
+  if (!menu) {
+    menu = document.createElement('div');
+    menu.id = 'repo-context-menu';
+    menu.className = 'repo-context-menu';
+    menu.innerHTML = `
+      <button type="button" class="repo-context-menu-item danger" data-action="delete">
+        Delete repository
+      </button>`;
+    document.body.appendChild(menu);
+
+    menu.querySelector('[data-action="delete"]').addEventListener('click', () => {
+      const id = contextMenuRepoId;
+      hideRepoContextMenu();
+      if (id != null) handleDeleteRepo(id);
+    });
+  }
+
+  contextMenuRepoId = repoId;
+  menu.style.display = 'block';
+
+  const menuRect = menu.getBoundingClientRect();
+  const left = Math.min(x, window.innerWidth - menuRect.width - 8);
+  const top = Math.min(y, window.innerHeight - menuRect.height - 8);
+  menu.style.left = `${Math.max(8, left)}px`;
+  menu.style.top = `${Math.max(8, top)}px`;
+}
+
+async function handleDeleteRepo(repoId) {
+  const repo = repos.find((r) => r.id === repoId);
+  const repoName = repo?.repo_name || 'this repository';
+
+  if (!confirm(`Delete "${repoName}"? This removes all indexed chunks and chat history.`)) {
+    return;
+  }
+
+  try {
+    await deleteRepo(repoId);
+    showToast('Repository deletion started', 'success');
+
+    repos = repos.filter((r) => r.id !== repoId);
+
+    if (selectedRepoId === repoId) {
+      selectedRepoId = null;
+      chatHistory = [];
+      stopStatusPolling();
+      document.getElementById('messages').innerHTML = '';
+      document.getElementById('welcome-screen').style.display = 'flex';
+      document.getElementById('chat-interface').style.display = 'none';
+    }
+
+    renderRepoList();
+
+    setTimeout(async () => {
+      try {
+        repos = await fetchRepos();
+        renderRepoList();
+      } catch (err) {
+        console.error('Failed to refresh repos after delete:', err);
+      }
+    }, 2000);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
 function updateStatusBadge(status) {
@@ -218,6 +297,10 @@ export function initApp() {
   sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
 
   document.addEventListener('click', (e) => {
+    if (!e.target.closest('#repo-context-menu')) {
+      hideRepoContextMenu();
+    }
+
     if (
       window.innerWidth <= 768 &&
       sidebar.classList.contains('open') &&
@@ -226,6 +309,10 @@ export function initApp() {
     ) {
       sidebar.classList.remove('open');
     }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideRepoContextMenu();
   });
 
   // Textarea auto-resize

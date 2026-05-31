@@ -1,10 +1,9 @@
-import chromadb
-import os
 import re
 
 from typing import List, Dict
 from rank_bm25 import BM25Okapi
 
+from retrieval.chroma_client import get_client
 from retrieval.schema import (
     ChunkSchema,
     ChunkType,
@@ -15,16 +14,10 @@ from retrieval.schema import (
 from worker.embeddings.embedder import get_model
 
 
-VECTOR_DB_PATH = "/app/vector_db"
-
-
 def get_collection(repo_id: str):
     print("giving collection name: ", f"repo_{repo_id}")
-    client = chromadb.PersistentClient(
-        path=VECTOR_DB_PATH
-    )
 
-    return client.get_or_create_collection(
+    return get_client().get_or_create_collection(
         name=f"repo_{repo_id}"
     )
 
@@ -267,3 +260,6 @@ def retrieve(
         )
 
     return retrieved_chunks
+
+def deleteRepo(repo_id: str):
+    get_client().delete_collection(name=f"repo_{repo_id}")

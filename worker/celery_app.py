@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.signals import worker_process_init
 
 celery = Celery(
     "worker",
@@ -12,3 +13,9 @@ celery.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+
+@worker_process_init.connect
+def _init_chroma_client(**_kwargs):
+    from retrieval.chroma_client import reset_client
+    reset_client()

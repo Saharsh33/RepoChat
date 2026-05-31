@@ -328,6 +328,37 @@ input, textarea {
 .status-dot.processing { background: var(--info); animation: pulse 1.5s ease-in-out infinite; }
 .status-dot.error { background: var(--error); }
 
+.repo-context-menu {
+  position: fixed;
+  z-index: 1000;
+  display: none;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.repo-context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.repo-context-menu-item:hover {
+  background: var(--bg-hover);
+}
+
+.repo-context-menu-item.danger {
+  color: var(--error);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }

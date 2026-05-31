@@ -43,6 +43,16 @@ export async function addRepo(githubUrl) {
   return res.json();
 }
 
+/** Delete a repo */
+export async function deleteRepo(repoId) {
+  const res = await apiFetch(`/api/repos/${repoId}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to delete repo');
+  }
+  return res.json();
+}
+
 /** Get repo status */
 export async function getRepoStatus(repoId) {
   const res = await apiFetch(`/api/repos/${repoId}/status`);
