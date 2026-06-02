@@ -4,7 +4,7 @@
 
 import hljs from 'highlight.js';
 import { marked } from 'marked';
-import { fetchRepos, addRepo, deleteRepo, getRepoStatus, chatStream } from './api.js';
+import { fetchRepos, addRepo, deleteRepo, getRepoStatus, chatStream, login, register, fetchMessages } from './api.js';
 
 // ---- State ----
 let repos = [];
@@ -13,6 +13,9 @@ let chatHistory = [];
 let isStreaming = false;
 let statusPollingInterval = null;
 let contextMenuRepoId = null;
+let currentSkip = 0;
+const MESSAGES_LIMIT = 20;
+let hasMoreMessages = true;
 
 // Configure marked
 marked.setOptions({
@@ -227,7 +230,15 @@ function stopStatusPolling() {
 function selectRepo(repoId) {
   selectedRepoId = repoId;
   chatHistory = [];
-  document.getElementById('messages').innerHTML = '';
+  
+  // Inject the Load More button container
+  document.getElementById('messages').innerHTML = `
+    <div id="load-more-container" style="text-align: center; margin-bottom: 24px; display: none;">
+      <button id="load-more-btn" style="background: var(--bg-tertiary); padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--accent-primary); border: 1px solid var(--border-medium);">Load Older Messages</button>
+    </div>
+  `;
+
+  document.getElementById('load-more-btn').addEventListener('click', () => loadChatHistory(repoId));
 
   const repo = repos.find((r) => r.id === repoId);
   if (!repo) return;
@@ -243,12 +254,14 @@ function selectRepo(repoId) {
     startStatusPolling(repoId);
   }
 
-  // Close sidebar on mobile
   if (window.innerWidth <= 768) {
     document.getElementById('sidebar').classList.remove('open');
   }
 
-  document.getElementById('chat-input').focus();
+  // Reset pagination state and load
+  currentSkip = 0;
+  hasMoreMessages = true;
+  loadChatHistory(repoId, true);
 }
 
 // ---- Message helpers ----
@@ -464,4 +477,147 @@ export function initApp() {
       showToast('Could not load repositories', 'error');
     }
   })();
+}
+export function checkAuthAndInit() {
+  // 1. Check if we just returned from Google Auth
+  const hash = window.location.hash;
+  if (hash.includes('token=')) {
+    const token = hash.split('token=')[1].split('&')[0];
+    localStorage.setItem('repochat_jwt_token', token);
+    window.history.replaceState(null, null, ' '); // Clean URL
+  }
+
+  const token = localStorage.getItem('repochat_jwt_token');
+  const loginModal = document.getElementById('login-modal');
+  const appContainer = document.getElementById('app');
+
+  if (token) {
+    loginModal.style.display = 'none';
+    appContainer.style.display = 'flex';
+    initApp();
+  } else {
+    appContainer.style.display = 'none';
+    loginModal.style.display = 'flex';
+
+    let isLoginMode = true;
+    const authForm = document.getElementById('auth-form');
+    const authBtn = document.getElementById('auth-btn');
+    const errorMsg = document.getElementById('auth-error');
+    
+    const toggleLogin = document.getElementById('toggle-login');
+    const toggleSignup = document.getElementById('toggle-signup');
+    const googleBtn = document.getElementById('google-auth-btn');
+
+    // Handle Google Auth redirect
+    googleBtn.addEventListener('click', () => {
+      // NOTE: Ensure your API_BASE points to the backend (e.g. http://localhost:8000)
+      window.location.href = `http://localhost:8000/api/auth/google/login`;
+    });
+
+    // Handle Mode Toggling
+    toggleLogin.addEventListener('click', () => {
+      isLoginMode = true;
+      toggleLogin.style.borderColor = 'var(--accent-primary)';
+      toggleLogin.style.color = 'var(--text-primary)';
+      toggleSignup.style.borderColor = 'transparent';
+      toggleSignup.style.color = 'var(--text-muted)';
+      authBtn.textContent = 'Login';
+      errorMsg.style.display = 'none';
+    });
+
+    toggleSignup.addEventListener('click', () => {
+      isLoginMode = false;
+      toggleSignup.style.borderColor = 'var(--accent-primary)';
+      toggleSignup.style.color = 'var(--text-primary)';
+      toggleLogin.style.borderColor = 'transparent';
+      toggleLogin.style.color = 'var(--text-muted)';
+      authBtn.textContent = 'Sign Up';
+      errorMsg.style.display = 'none';
+    });
+
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+
+      authBtn.disabled = true;
+      authBtn.textContent = isLoginMode ? 'Logging in...' : 'Signing up...';
+      errorMsg.style.display = 'none';
+
+      try {
+        if (isLoginMode) {
+          await login(username, password);
+        } else {
+          await register(username, password);
+        }
+        
+        authForm.reset();
+        loginModal.style.display = 'none';
+        appContainer.style.display = 'flex';
+        initApp();
+      } catch (err) {
+        errorMsg.textContent = err.message;
+        errorMsg.style.display = 'block';
+        authBtn.disabled = false;
+        authBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
+      }
+    });
+  }
+}
+async function loadChatHistory(repoId, isInitialLoad = false) {
+  if (!hasMoreMessages) return;
+  
+  const loadBtn = document.getElementById('load-more-btn');
+  const container = document.getElementById('load-more-container');
+  if (loadBtn) loadBtn.textContent = 'Loading...';
+
+  try {
+    const messages = await fetchMessages(repoId, currentSkip, MESSAGES_LIMIT);
+    
+    // Check if we've reached the end of the history
+    if (messages.length < MESSAGES_LIMIT) {
+      hasMoreMessages = false;
+      if (container) container.style.display = 'none';
+    } else {
+      if (container) container.style.display = 'block';
+    }
+
+    if (loadBtn) loadBtn.textContent = 'Load Older Messages';
+
+    const messagesContainer = document.getElementById('messages');
+    const fragment = document.createDocumentFragment();
+    
+    // Parse and format the fetched messages
+    messages.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = `message ${msg.role}`;
+      const avatarLabel = msg.role === 'user' ? 'U' : 'AI';
+      div.innerHTML = `
+        <div class="message-avatar">${avatarLabel}</div>
+        <div class="message-body">
+          <div class="message-role">${msg.role === 'user' ? 'You' : 'RepoChat'}</div>
+          <div class="message-content">${marked.parse(msg.content)}</div>
+        </div>`;
+      
+      div.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+      fragment.appendChild(div);
+      
+      // Keep local history array in sync
+      if (isInitialLoad) chatHistory.push(msg); 
+    });
+
+    // Insert the older messages right beneath the "Load More" button
+    messagesContainer.insertBefore(fragment, container.nextSibling);
+
+    currentSkip += messages.length;
+
+    // Scroll to the bottom if this is the first load
+    if (isInitialLoad) {
+      scrollToBottom();
+      document.getElementById('chat-input').focus();
+    }
+  } catch (err) {
+    console.error("Failed to load history", err);
+    if (loadBtn) loadBtn.textContent = 'Error. Try again.';
+  }
 }

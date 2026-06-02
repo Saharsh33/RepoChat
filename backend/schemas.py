@@ -12,3 +12,8 @@ class ChatRequest(BaseModel):
     repo_id: int
     query: str
     history: Optional[List[Message]] = []
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str

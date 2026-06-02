@@ -14,7 +14,9 @@ class Repo(Base):
     #id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    github_url = Column(Text, nullable=False, unique=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+
+    github_url = Column(Text, nullable=False, unique=False)
 
     repo_name = Column(String, nullable=False)
 
@@ -102,6 +104,16 @@ class Message(Base):
 
     created_at = Column(TIMESTAMP, server_default=func.now())
 
+# --- ADD THIS USER CLASS ---
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=True)
+    hashed_password = Column(String, nullable=True) # Nullable for Google-only users
+    google_id = Column(String, unique=True, index=True, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
 
 Index("idx_chunks_repo_id", Chunk.repo_id)
 Index("idx_messages_repo_id", Message.repo_id)

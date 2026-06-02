@@ -1,52 +1,43 @@
-"""
-RepoChat — API Key Authentication
-
-Simple API key guard. The expected key is read from the
-REPOCHAT_API_KEY environment variable.
-
-- If REPOCHAT_API_KEY is NOT set, auth is disabled (open access).
-- If REPOCHAT_API_KEY IS set, every request must include:
-      Header:  X-API-Key: <key>
-
-Usage in routes:
-    from backend.services.auth_service import require_api_key
-
-    @router.get("/protected")
-    def protected(api_key: str = Depends(require_api_key)):
-        ...
-"""
-
 import os
-from fastapi import Depends, HTTPException, Security
-from fastapi.security import APIKeyHeader
+import jwt
+from datetime import datetime, timedelta
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
 
-API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-dev-secret")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
-EXPECTED_KEY = os.getenv("REPOCHAT_API_KEY")
+# This automatically extracts the token from the "Authorization: Bearer <token>" header
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-async def require_api_key(
-    api_key: str | None = Security(API_KEY_HEADER),
-):
-    """
-    FastAPI dependency.
-    If REPOCHAT_API_KEY env var is blank/missing → allow all requests.
-    Otherwise, validate the incoming X-API-Key header.
-    """
-    # Auth disabled when no key is configured
-    if not EXPECTED_KEY:
-        return None
+async def require_auth(token: str = Depends(oauth2_scheme)):
+    """Validates the JWT token and returns the current user."""
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        return username
+    except jwt.PyJWTError:
+        raise credentials_exception
+    
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    if not api_key:
-        raise HTTPException(
-            status_code=401,
-            detail="Missing API key. Pass it via the X-API-Key header.",
-        )
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
-    if api_key != EXPECTED_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid API key.",
-        )
-
-    return api_key
+def get_password_hash(password):
+    return pwd_context.hash(password)

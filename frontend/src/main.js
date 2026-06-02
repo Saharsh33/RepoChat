@@ -123,4 +123,5 @@ document.querySelector('#app').innerHTML = `
 `;
 
 // Boot the app
-initApp();
+import { checkAuthAndInit } from './app.js';
+checkAuthAndInit();

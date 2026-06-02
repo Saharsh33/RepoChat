@@ -12,11 +12,11 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
  * when one is set in localStorage.
  */
 function apiFetch(path, options = {}) {
-  const apiKey = localStorage.getItem('repochat_api_key');
+  const token = localStorage.getItem('repochat_jwt_token');
   const headers = { ...options.headers };
 
-  if (apiKey) {
-    headers['X-API-Key'] = apiKey;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   return fetch(`${API_BASE}${path}`, { ...options, headers });
@@ -27,6 +27,38 @@ export async function fetchRepos() {
   const res = await apiFetch('/api/repos');
   if (!res.ok) throw new Error('Failed to fetch repos');
   return res.json();
+}
+
+/** Login and store JWT token */
+export async function login(username, password) {
+  const formData = new URLSearchParams();
+  formData.append('username', username);
+  formData.append('password', password);
+
+  // Notice the path changed to /api/auth/token
+  const res = await fetch(`${API_BASE}/api/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error('Login failed');
+  const data = await res.json();
+  localStorage.setItem('repochat_jwt_token', data.access_token);
+  return data;
+}
+
+export async function register(username, password) {
+  const res = await fetch(`${API_BASE}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!res.ok) throw new Error('Registration failed. Username might be taken.');
+  const data = await res.json();
+  localStorage.setItem('repochat_jwt_token', data.access_token);
+  return data;
 }
 
 /** Add a repo */
@@ -65,11 +97,23 @@ export async function getRepoStatus(repoId) {
  */
 export async function chatStream(repoId, query) {
   const params = new URLSearchParams({ repo_id: repoId, query });
-  const apiKey = localStorage.getItem('repochat_api_key');
+  const token = localStorage.getItem('repochat_jwt_token');
   const headers = {};
-  if (apiKey) headers['X-API-Key'] = apiKey;
+  if (token) {
+     headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const res = await fetch(`${API_BASE}/api/chat/stream?${params}`, { headers });
   if (!res.ok) throw new Error(`Server error: ${res.status}`);
   return res.body.getReader();
+}
+
+export async function fetchMessages(repoId, skip = 0, limit = 20) {
+  const token = localStorage.getItem('repochat_jwt_token');
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/api/repos/${repoId}/messages?skip=${skip}&limit=${limit}`, { headers });
+  if (!res.ok) throw new Error('Failed to fetch messages');
+  return res.json();
 }

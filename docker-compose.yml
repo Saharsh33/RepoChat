@@ -19,13 +19,19 @@ services:
       PYTHONPATH: /app
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ragdb
       GROQ_API_KEY: ${GROQ_API_KEY}
-      REPOCHAT_API_KEY: ${REPOCHAT_API_KEY:-}
+      REPOCHAT_API_KEY: ${REPOCHAT_API_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude "repos/*"
 
   worker:
     build: .
@@ -38,6 +44,7 @@ services:
       PYTHONPATH: /app
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ragdb
       GROQ_API_KEY: ${GROQ_API_KEY}
+      REPOCHAT_API_KEY: ${REPOCHAT_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
