@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import User
 from backend.schemas import UserCreate
-from backend.services.auth_service import create_access_token, get_password_hash, verify_password
+from backend.services.auth_service import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+    require_auth,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -30,6 +35,15 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     
     token = create_access_token(data={"sub": new_user.username})
     return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/me")
+def me(current_user: str = Depends(require_auth), db: Session = Depends(get_db)):
+    """Validate JWT and confirm the user still exists (e.g. after a DB reset)."""
+    user = db.query(User).filter(User.username == current_user).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return {"username": user.username, "email": user.email}
+
 
 # 2. LOCAL LOGIN
 @router.post("/token")

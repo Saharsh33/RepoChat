@@ -4,7 +4,19 @@
 
 import hljs from 'highlight.js';
 import { marked } from 'marked';
-import { fetchRepos, addRepo, deleteRepo, getRepoStatus, chatStream, login, register, fetchMessages } from './api.js';
+import {
+  fetchRepos,
+  addRepo,
+  deleteRepo,
+  getRepoStatus,
+  chatStream,
+  login,
+  register,
+  fetchMessages,
+  validateSession,
+  clearAuthToken,
+  getGoogleLoginUrl,
+} from './api.js';
 
 // ---- State ----
 let repos = [];
@@ -415,7 +427,7 @@ export function initApp() {
 
   // Logout
   document.getElementById('logout-btn').addEventListener('click', () => {
-    localStorage.removeItem('repochat_jwt_token');
+    clearAuthToken();
     window.location.reload();
   });
 
@@ -649,90 +661,105 @@ export function initApp() {
     }
   })();
 }
-export function checkAuthAndInit() {
-  // 1. Check if we just returned from Google Auth
+function showLoginModal() {
+  const loginModal = document.getElementById('login-modal');
+  const appContainer = document.getElementById('app');
+  appContainer.style.display = 'none';
+  loginModal.style.display = 'flex';
+}
+
+function showApp() {
+  const loginModal = document.getElementById('login-modal');
+  const appContainer = document.getElementById('app');
+  loginModal.style.display = 'none';
+  appContainer.style.display = 'flex';
+  initApp();
+}
+
+function setupLoginForm() {
+  let isLoginMode = true;
+  const authForm = document.getElementById('auth-form');
+  const authBtn = document.getElementById('auth-btn');
+  const errorMsg = document.getElementById('auth-error');
+
+  const toggleLogin = document.getElementById('toggle-login');
+  const toggleSignup = document.getElementById('toggle-signup');
+  const googleBtn = document.getElementById('google-auth-btn');
+
+  googleBtn.addEventListener('click', () => {
+    window.location.href = getGoogleLoginUrl();
+  });
+
+  toggleLogin.addEventListener('click', () => {
+    isLoginMode = true;
+    toggleLogin.style.borderColor = 'var(--accent-primary)';
+    toggleLogin.style.color = 'var(--text-primary)';
+    toggleSignup.style.borderColor = 'transparent';
+    toggleSignup.style.color = 'var(--text-muted)';
+    authBtn.textContent = 'Login';
+    errorMsg.style.display = 'none';
+  });
+
+  toggleSignup.addEventListener('click', () => {
+    isLoginMode = false;
+    toggleSignup.style.borderColor = 'var(--accent-primary)';
+    toggleSignup.style.color = 'var(--text-primary)';
+    toggleLogin.style.borderColor = 'transparent';
+    toggleLogin.style.color = 'var(--text-muted)';
+    authBtn.textContent = 'Sign Up';
+    errorMsg.style.display = 'none';
+  });
+
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('auth-username').value;
+    const password = document.getElementById('auth-password').value;
+
+    authBtn.disabled = true;
+    authBtn.textContent = isLoginMode ? 'Logging in...' : 'Signing up...';
+    errorMsg.style.display = 'none';
+
+    try {
+      if (isLoginMode) {
+        await login(username, password);
+      } else {
+        await register(username, password);
+      }
+
+      authForm.reset();
+      showApp();
+    } catch (err) {
+      errorMsg.textContent = err.message;
+      errorMsg.style.display = 'block';
+      authBtn.disabled = false;
+      authBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
+    }
+  });
+}
+
+export async function checkAuthAndInit() {
   const hash = window.location.hash;
   if (hash.includes('token=')) {
     const token = hash.split('token=')[1].split('&')[0];
     localStorage.setItem('repochat_jwt_token', token);
-    window.history.replaceState(null, null, ' '); // Clean URL
+    window.history.replaceState(null, null, ' ');
   }
 
   const token = localStorage.getItem('repochat_jwt_token');
-  const loginModal = document.getElementById('login-modal');
-  const appContainer = document.getElementById('app');
 
-  if (token) {
-    loginModal.style.display = 'none';
-    appContainer.style.display = 'flex';
-    initApp();
-  } else {
-    appContainer.style.display = 'none';
-    loginModal.style.display = 'flex';
+  if (!token) {
+    showLoginModal();
+    setupLoginForm();
+    return;
+  }
 
-    let isLoginMode = true;
-    const authForm = document.getElementById('auth-form');
-    const authBtn = document.getElementById('auth-btn');
-    const errorMsg = document.getElementById('auth-error');
-    
-    const toggleLogin = document.getElementById('toggle-login');
-    const toggleSignup = document.getElementById('toggle-signup');
-    const googleBtn = document.getElementById('google-auth-btn');
-
-    // Handle Google Auth redirect
-    googleBtn.addEventListener('click', () => {
-      // NOTE: Ensure your API_BASE points to the backend (e.g. http://localhost:8000)
-      window.location.href = `http://localhost:8000/api/auth/google/login`;
-    });
-
-    // Handle Mode Toggling
-    toggleLogin.addEventListener('click', () => {
-      isLoginMode = true;
-      toggleLogin.style.borderColor = 'var(--accent-primary)';
-      toggleLogin.style.color = 'var(--text-primary)';
-      toggleSignup.style.borderColor = 'transparent';
-      toggleSignup.style.color = 'var(--text-muted)';
-      authBtn.textContent = 'Login';
-      errorMsg.style.display = 'none';
-    });
-
-    toggleSignup.addEventListener('click', () => {
-      isLoginMode = false;
-      toggleSignup.style.borderColor = 'var(--accent-primary)';
-      toggleSignup.style.color = 'var(--text-primary)';
-      toggleLogin.style.borderColor = 'transparent';
-      toggleLogin.style.color = 'var(--text-muted)';
-      authBtn.textContent = 'Sign Up';
-      errorMsg.style.display = 'none';
-    });
-
-    authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('auth-username').value;
-      const password = document.getElementById('auth-password').value;
-
-      authBtn.disabled = true;
-      authBtn.textContent = isLoginMode ? 'Logging in...' : 'Signing up...';
-      errorMsg.style.display = 'none';
-
-      try {
-        if (isLoginMode) {
-          await login(username, password);
-        } else {
-          await register(username, password);
-        }
-        
-        authForm.reset();
-        loginModal.style.display = 'none';
-        appContainer.style.display = 'flex';
-        initApp();
-      } catch (err) {
-        errorMsg.textContent = err.message;
-        errorMsg.style.display = 'block';
-        authBtn.disabled = false;
-        authBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
-      }
-    });
+  try {
+    await validateSession();
+    showApp();
+  } catch {
+    clearAuthToken();
+    showLoginModal();
+    setupLoginForm();
   }
 }
 async function loadChatHistory(repoId, isInitialLoad = false) {
