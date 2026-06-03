@@ -50,6 +50,8 @@ def list_repos(
     current_user: str = Depends(require_auth)
 ):
     user = db.query(User).filter(User.username == current_user).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
     
     # Filter by user.id
     repos = db.query(Repo).filter(Repo.user_id == user.id).order_by(Repo.created_at.desc()).all()
@@ -75,6 +77,8 @@ def remove_repo(
     current_user: str = Depends(require_auth),
 ):
     user = db.query(User).filter(User.username == current_user).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
     
     # Ensure the repo exists AND belongs to the current user
     repo = db.query(Repo).filter(Repo.id == repo_id, Repo.user_id == user.id).first()
@@ -91,6 +95,8 @@ def get_repo_status(
     current_user: str = Depends(require_auth)
 ):
     user = db.query(User).filter(User.username == current_user).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
     
     # Filter by user.id
     repo = db.query(Repo).filter(Repo.id == repo_id, Repo.user_id == user.id).first()
@@ -111,6 +117,8 @@ def get_repo_status(
 def chat(data: ChatRequest, current_user: str = Depends(require_auth), db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.username == current_user).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
     
     # Verify ownership
     repo = db.query(Repo).filter(Repo.id == data.repo_id, Repo.user_id == user.id).first()
@@ -133,6 +141,8 @@ def chat_stream(
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.username == current_user).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
     
     # Verify ownership
     repo = db.query(Repo).filter(Repo.id == repo_id, Repo.user_id == user.id).first()
@@ -189,6 +199,8 @@ def get_chat_history(
 ):
     # Fetch messages ordered by newest first for pagination
     user = db.query(User).filter(User.username == current_user).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
     
     # Verify the user actually owns this repository before proceeding
     repo = db.query(Repo).filter(Repo.id == repo_id, Repo.user_id == user.id).first()

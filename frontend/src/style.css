@@ -3,27 +3,27 @@
    ============================================ */
 
 :root {
-  /* Colors — Dark theme */
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-tertiary: #1a1a28;
-  --bg-elevated: #1e1e2e;
-  --bg-hover: #252538;
-  --bg-active: #2a2a42;
+  /* Colors — Professional dark theme */
+  --bg-primary: #111113;
+  --bg-secondary: #19191d;
+  --bg-tertiary: #222228;
+  --bg-elevated: #2a2a30;
+  --bg-hover: #2e2e36;
+  --bg-active: #35353e;
 
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-medium: rgba(255, 255, 255, 0.1);
-  --border-focus: rgba(129, 140, 248, 0.5);
+  --border-medium: rgba(255, 255, 255, 0.10);
+  --border-focus: rgba(91, 158, 245, 0.45);
 
-  --text-primary: #e4e4f0;
-  --text-secondary: #9898b0;
-  --text-muted: #6b6b82;
-  --text-inverse: #0a0a0f;
+  --text-primary: #e2e2e6;
+  --text-secondary: #9a9aa6;
+  --text-muted: #6c6c78;
+  --text-inverse: #111113;
 
-  --accent-primary: #818cf8;
-  --accent-secondary: #c084fc;
-  --accent-gradient: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
-  --accent-glow: rgba(129, 140, 248, 0.15);
+  --accent-primary: #5b9ef5;
+  --accent-secondary: #7ab4f7;
+  --accent-gradient: #5b9ef5;
+  --accent-glow: rgba(91, 158, 245, 0.12);
 
   --success: #34d399;
   --warning: #fbbf24;
@@ -155,10 +155,7 @@ input, textarea {
 .logo-text {
   font-size: 18px;
   font-weight: 700;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
 }
 
 /* Add Repo */
@@ -207,7 +204,7 @@ input, textarea {
   justify-content: center;
   gap: 6px;
   padding: 9px 14px;
-  background: var(--accent-gradient);
+  background: var(--accent-primary);
   color: white;
   border-radius: var(--radius-sm);
   font-weight: 600;
@@ -364,6 +361,31 @@ input, textarea {
   50% { opacity: 0.4; }
 }
 
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.logout-btn:hover {
+  background: rgba(248, 113, 113, 0.08);
+  color: var(--error);
+}
+
 /* ============================================
    Sidebar Toggle (Mobile)
    ============================================ */
@@ -425,10 +447,7 @@ input, textarea {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 12px;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
 }
 
 .welcome-content p {
@@ -535,7 +554,7 @@ input, textarea {
 }
 
 .message.user .message-avatar {
-  background: var(--accent-gradient);
+  background: var(--accent-primary);
   color: white;
 }
 
@@ -655,12 +674,14 @@ input, textarea {
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   color: var(--text-secondary);
-  transition: border-color var(--transition-fast);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .source-tag:hover {
   border-color: var(--accent-primary);
   color: var(--accent-primary);
+  background: var(--accent-glow);
 }
 
 /* Typing indicator */
@@ -740,7 +761,7 @@ input, textarea {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
-  background: var(--accent-gradient);
+  background: var(--accent-primary);
   color: white;
   display: flex;
   align-items: center;
@@ -933,7 +954,7 @@ input, textarea {
 #login-form button {
   margin-top: 8px;
   padding: 12px;
-  background: var(--accent-gradient);
+  background: var(--accent-primary);
   color: white;
   border-radius: var(--radius-sm);
   font-weight: 600;
@@ -948,4 +969,133 @@ input, textarea {
 #login-form button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ============================================
+   Chunk Preview Modal
+   ============================================ */
+
+.chunk-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+  padding: 24px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.chunk-preview-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  animation: scaleIn 0.2s var(--ease-out);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.chunk-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.chunk-preview-file-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.chunk-preview-filename {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.chunk-preview-lines {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.chunk-preview-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 12px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.chunk-preview-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.chunk-preview-body {
+  overflow: auto;
+  padding: 0;
+}
+
+.chunk-preview-body pre {
+  margin: 0;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.chunk-preview-body pre code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .chunk-preview-card {
+    max-width: 100%;
+    max-height: 90vh;
+  }
+
+  .chunk-preview-overlay {
+    padding: 12px;
+  }
 }

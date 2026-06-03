@@ -55,6 +55,69 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ---- Chunk Preview Modal ----
+function showChunkPreview(source) {
+  // Remove existing overlay if any
+  hideChunkPreview();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'chunk-preview-overlay';
+  overlay.id = 'chunk-preview-overlay';
+
+  // Guess language from file extension for syntax highlighting
+  const ext = source.file.split('.').pop().toLowerCase();
+  const langMap = {
+    js: 'javascript', ts: 'typescript', py: 'python', rb: 'ruby',
+    go: 'go', rs: 'rust', java: 'java', cpp: 'cpp', c: 'c',
+    cs: 'csharp', php: 'php', swift: 'swift', kt: 'kotlin',
+    sh: 'bash', bash: 'bash', zsh: 'bash', yml: 'yaml', yaml: 'yaml',
+    json: 'json', html: 'html', css: 'css', scss: 'scss',
+    sql: 'sql', md: 'markdown', jsx: 'javascript', tsx: 'typescript',
+    vue: 'html', svelte: 'html', toml: 'toml', xml: 'xml',
+  };
+  const lang = langMap[ext] || '';
+  const langAttr = lang ? ` class="language-${lang}"` : '';
+
+  overlay.innerHTML = `
+    <div class="chunk-preview-card">
+      <div class="chunk-preview-header">
+        <div class="chunk-preview-file-info">
+          <div class="chunk-preview-filename">${escapeHtml(source.file)}</div>
+          <div class="chunk-preview-lines">Lines ${source.start}–${source.end}</div>
+        </div>
+        <button class="chunk-preview-close" id="chunk-preview-close" aria-label="Close preview">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="chunk-preview-body">
+        <pre><code${langAttr}>${escapeHtml(source.content || 'No content available')}</code></pre>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Syntax highlight the code block
+  const codeBlock = overlay.querySelector('pre code');
+  if (codeBlock) {
+    hljs.highlightElement(codeBlock);
+  }
+
+  // Close handlers
+  overlay.querySelector('#chunk-preview-close').addEventListener('click', hideChunkPreview);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) hideChunkPreview();
+  });
+}
+
+function hideChunkPreview() {
+  const existing = document.getElementById('chunk-preview-overlay');
+  if (existing) existing.remove();
+}
+
 // ---- Render helpers ----
 function renderRepoList() {
   const repoListEl = document.getElementById('repo-list');
@@ -309,6 +372,12 @@ export function initApp() {
   // Sidebar toggle
   sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
 
+  // Logout
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    localStorage.removeItem('repochat_jwt_token');
+    window.location.reload();
+  });
+
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#repo-context-menu')) {
       hideRepoContextMenu();
@@ -325,7 +394,10 @@ export function initApp() {
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hideRepoContextMenu();
+    if (e.key === 'Escape') {
+      hideRepoContextMenu();
+      hideChunkPreview();
+    }
   });
 
   // Textarea auto-resize
@@ -448,7 +520,8 @@ export function initApp() {
               <polyline points="13 2 13 9 20 9"></polyline>
             </svg>
             ${escapeHtml(fileName)}:${s.start}-${s.end}`;
-          tag.title = s.file;
+          tag.title = `Click to preview — ${s.file}`;
+          tag.addEventListener('click', () => showChunkPreview(s));
           sourcesEl.appendChild(tag);
         });
         assistantMsgEl.querySelector('.message-body').appendChild(sourcesEl);

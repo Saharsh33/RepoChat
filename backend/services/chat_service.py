@@ -86,7 +86,8 @@ def chat_with_repo(repo_id, query, history=None):
             {
                 "file": c.file_path,
                 "start": c.start_line,
-                "end": c.end_line
+                "end": c.end_line,
+                "content": c.content
             }
             for c in chunks
         ]
@@ -111,7 +112,8 @@ def chat_with_repo_stream(repo_id, query, history=None):
         {
             "file": c.file_path,
             "start": c.start_line,
-            "end": c.end_line
+            "end": c.end_line,
+            "content": c.content
         }
         for c in chunks
     ]

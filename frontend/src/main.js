@@ -52,6 +52,18 @@ document.querySelector('#app').innerHTML = `
         </div>
       </div>
     </div>
+
+    <!-- Logout -->
+    <div class="sidebar-footer">
+      <button id="logout-btn" class="logout-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Logout
+      </button>
+    </div>
   </aside>
 
   <!-- Mobile sidebar toggle -->
@@ -72,8 +84,8 @@ document.querySelector('#app').innerHTML = `
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="url(#grad)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <defs>
               <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#818cf8"/>
-                <stop offset="100%" style="stop-color:#c084fc"/>
+                <stop offset="0%" style="stop-color:#5b9ef5"/>
+                <stop offset="100%" style="stop-color:#7ab4f7"/>
               </linearGradient>
             </defs>
             <polyline points="16 18 22 12 16 6"></polyline>
