@@ -3,32 +3,32 @@
    ============================================ */
 
 :root {
-  /* Colors — Professional dark theme */
-  --bg-primary: #111113;
-  --bg-secondary: #19191d;
-  --bg-tertiary: #222228;
-  --bg-elevated: #2a2a30;
-  --bg-hover: #2e2e36;
-  --bg-active: #35353e;
+  /* Colors — Professional Light theme */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9f9f9;
+  --bg-tertiary: #f0f0f0;
+  --bg-elevated: #ffffff;
+  --bg-hover: #ececec;
+  --bg-active: #e5e5e5;
 
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-medium: rgba(255, 255, 255, 0.10);
-  --border-focus: rgba(91, 158, 245, 0.45);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-medium: rgba(0, 0, 0, 0.15);
+  --border-focus: rgba(0, 0, 0, 0.45);
 
-  --text-primary: #e2e2e6;
-  --text-secondary: #9a9aa6;
-  --text-muted: #6c6c78;
-  --text-inverse: #111113;
+  --text-primary: #0d0d0d;
+  --text-secondary: #555555;
+  --text-muted: #888888;
+  --text-inverse: #ffffff;
 
-  --accent-primary: #5b9ef5;
-  --accent-secondary: #7ab4f7;
-  --accent-gradient: #5b9ef5;
-  --accent-glow: rgba(91, 158, 245, 0.12);
+  --accent-primary: #000000;
+  --accent-secondary: #333333;
+  --accent-gradient: #000000;
+  --accent-glow: rgba(0, 0, 0, 0.05);
 
-  --success: #34d399;
-  --warning: #fbbf24;
-  --error: #f87171;
-  --info: #60a5fa;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
 
   /* Sizing */
   --sidebar-width: 300px;
@@ -113,11 +113,11 @@ input, textarea {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* ============================================
@@ -621,7 +621,8 @@ input, textarea {
 .message-content pre code {
   display: block;
   padding: 16px;
-  background: var(--bg-elevated);
+  background: #f6f8fa;
+  color: #24292e;
   border: none;
   border-radius: 0;
   overflow-x: auto;
@@ -660,7 +661,18 @@ input, textarea {
   margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+}
+
+.interactive-path {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.interactive-path:hover {
+  background: var(--bg-hover) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .source-tag {
@@ -686,25 +698,24 @@ input, textarea {
 
 /* Typing indicator */
 .typing-indicator {
-  display: flex;
-  gap: 4px;
   padding: 4px 0;
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
-.typing-indicator span {
-  width: 6px;
-  height: 6px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  animation: typingBounce 1.4s infinite;
+.shimmer-text {
+  background: linear-gradient(90deg, var(--text-muted) 0%, var(--text-primary) 50%, var(--text-muted) 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 2s linear infinite;
 }
 
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-6px); }
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
 }
 
 /* ============================================
@@ -911,7 +922,7 @@ input, textarea {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(10, 10, 15, 0.85);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   z-index: 9999;
   display: flex;
@@ -920,13 +931,62 @@ input, textarea {
 }
 
 .modal-content {
-  background: var(--bg-elevated);
+  background: #ffffff;
   padding: 32px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-medium);
   width: 100%;
-  max-width: 360px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  max-width: 380px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 12px 14px;
+  background: #f9f9f9;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: #0d0d0d;
+  font-family: var(--font-main);
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.modal-content input:focus {
+  outline: none;
+  border-color: #0d0d0d;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+}
+
+.modal-content input::placeholder {
+  color: #999;
+}
+
+.modal-content button[type="submit"],
+#auth-btn {
+  margin-top: 8px;
+  padding: 12px;
+  background: #0d0d0d;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+  font-family: var(--font-main);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.modal-content button[type="submit"]:hover,
+#auth-btn:hover {
+  opacity: 0.85;
+}
+
+.modal-content button[type="submit"]:disabled,
+#auth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 #login-form {
@@ -938,24 +998,24 @@ input, textarea {
 #login-form input {
   width: 100%;
   padding: 12px 14px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-medium);
+  background: #f9f9f9;
+  border: 1px solid rgba(0,0,0,0.15);
   border-radius: var(--radius-sm);
   font-size: 14px;
-  color: var(--text-primary);
+  color: #0d0d0d;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 #login-form input:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  border-color: #0d0d0d;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
 }
 
 #login-form button {
   margin-top: 8px;
   padding: 12px;
-  background: var(--accent-primary);
-  color: white;
+  background: #0d0d0d;
+  color: #ffffff;
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 14px;
@@ -963,7 +1023,7 @@ input, textarea {
 }
 
 #login-form button:hover {
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 #login-form button:disabled {
@@ -1074,7 +1134,7 @@ input, textarea {
 .chunk-preview-body pre {
   margin: 0;
   padding: 16px 20px;
-  background: transparent;
+  background: #f6f8fa !important;
   border: none;
   border-radius: 0;
 }
@@ -1083,7 +1143,8 @@ input, textarea {
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
-  color: var(--text-primary);
+  color: #24292e !important;
+  background: #f6f8fa !important;
   display: block;
   white-space: pre;
   overflow-x: auto;

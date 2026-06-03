@@ -73,7 +73,8 @@ def retrieve(
     query: str,
     repo_id: str,
     top_k: int = 10,
-    mode: RetrievalMode = RetrievalMode.HYBRID
+    mode: RetrievalMode = RetrievalMode.HYBRID,
+    max_per_file: int = None
 ) -> List[RetrievedChunkSchema]:
 
     collection = get_collection(repo_id)
@@ -118,7 +119,7 @@ def retrieve(
 
         sem_results = collection.query(
             query_embeddings=query_embedding.tolist(),
-            n_results=top_k,
+            n_results=top_k * 2, # Get more for potential filtering
             include=["distances"]
         )
 
@@ -143,6 +144,7 @@ def retrieve(
             print("Semantic scores:", semantic_scores)
 
     bm25_scores: Dict[str, float] = {}
+    filename_scores: Dict[str, float] = {}
 
     if mode in [
         RetrievalMode.KEYWORD,
@@ -171,25 +173,42 @@ def retrieve(
                 if max_score > 0 else 0.0
             )
 
+    if mode == RetrievalMode.HYBRID:
+        # Extract potential filenames and path segments from query
+        query_words = tokenize(query)
+        file_pattern = r'\b\w+\.(?:py|js|ts|go|rs|java|cpp|c|md)\b'
+        exact_files = re.findall(file_pattern, query.lower())
+        
+        for idx, cid in enumerate(all_ids):
+            metadata = all_metadatas[idx] or {}
+            file_path = metadata.get("file_path", "").lower()
+            
+            score = 0.0
+            for ef in exact_files:
+                if ef in file_path:
+                    score = 1.0
+                    break
+            
+            if score == 0.0:
+                for w in query_words:
+                    if len(w) > 3 and w in file_path:
+                        score = 0.5
+                        break
+                        
+            filename_scores[cid] = score
+
     for cid in all_ids:
 
         s_score = semantic_scores.get(cid, 0.0)
         b_score = bm25_scores.get(cid, 0.0)
-
-        # if (
-        #     mode in [
-        #         RetrievalMode.SEMANTIC,
-        #         RetrievalMode.HYBRID
-        #     ]
-        #     and s_score < 0.25
-        # ):
-        #     continue
+        f_score = filename_scores.get(cid, 0.0)
 
         if mode == RetrievalMode.HYBRID:
 
             final_scores[cid] = (
-                0.7 * s_score +
-                0.3 * b_score
+                0.55 * s_score +
+                0.25 * b_score +
+                0.20 * f_score
             )
 
         elif mode == RetrievalMode.SEMANTIC:
@@ -204,15 +223,23 @@ def retrieve(
         final_scores.items(),
         key=lambda x: x[1],
         reverse=True
-    )[:top_k]
+    )
 
     retrieved_chunks = []
+    file_counts = {}
 
     for cid, score in sorted_candidates:
 
         data = chunk_lookup[cid]
 
         metadata = data["metadata"] or {}
+        
+        file_path = str(metadata.get("file_path", ""))
+        
+        if max_per_file is not None:
+            if file_counts.get(file_path, 0) >= max_per_file:
+                continue
+            file_counts[file_path] = file_counts.get(file_path, 0) + 1
 
         try:
             enum_chunk_type = ChunkType(
@@ -230,12 +257,7 @@ def retrieve(
             RetrievedChunkSchema(
                 id=str(cid),
                 content=str(data["content"]),
-                file_path=str(
-                    metadata.get(
-                        "file_path",
-                        ""
-                    )
-                ),
+                file_path=file_path,
                 chunk_type=enum_chunk_type,
                 signature=str(
                     metadata.get(
@@ -258,8 +280,25 @@ def retrieve(
                 score=score
             )
         )
+        
+        if len(retrieved_chunks) >= top_k:
+            break
 
     return retrieved_chunks
+
+def retrieve_diverse(
+    query: str,
+    repo_id: str,
+    top_k: int = 15,
+    max_per_file: int = 2
+) -> List[RetrievedChunkSchema]:
+    return retrieve(
+        query=query,
+        repo_id=repo_id,
+        top_k=top_k,
+        mode=RetrievalMode.HYBRID,
+        max_per_file=max_per_file
+    )
 
 def deleteRepo(repo_id: str):
     get_client().delete_collection(name=f"repo_{repo_id}")

@@ -78,6 +78,29 @@ function showChunkPreview(source) {
   const lang = langMap[ext] || '';
   const langAttr = lang ? ` class="language-${lang}"` : '';
 
+  const repo = repos.find((r) => r.id === selectedRepoId);
+  const startLine = parseInt(source.start, 10) || 1;
+  const lines = (source.content || 'No content available').split('\n');
+  const numLines = lines.length;
+  let lineNumbersHtml = '';
+  for (let i = 0; i < numLines; i++) {
+    lineNumbersHtml += `<div>${startLine + i}</div>`;
+  }
+
+  // Clean the file path for GitHub
+  let cleanPath = source.file;
+  if (cleanPath.includes('/repos/')) {
+    const subParts = cleanPath.split('/repos/')[1].split('/');
+    subParts.shift();
+    cleanPath = subParts.join('/');
+  } else if (cleanPath.startsWith('./')) {
+    cleanPath = cleanPath.substring(2);
+  }
+
+  let githubBase = repo && repo.github_url ? repo.github_url : '';
+  if (githubBase.endsWith('/')) githubBase = githubBase.slice(0, -1);
+  if (githubBase.endsWith('.git')) githubBase = githubBase.slice(0, -4);
+
   overlay.innerHTML = `
     <div class="chunk-preview-card">
       <div class="chunk-preview-header">
@@ -85,15 +108,26 @@ function showChunkPreview(source) {
           <div class="chunk-preview-filename">${escapeHtml(source.file)}</div>
           <div class="chunk-preview-lines">Lines ${source.start}–${source.end}</div>
         </div>
-        <button class="chunk-preview-close" id="chunk-preview-close" aria-label="Close preview">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          ${githubBase ? `
+          <a href="${githubBase}/blob/main/${cleanPath}#L${source.start}-L${source.end}" target="_blank" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-tertiary); color: var(--text-primary); border-radius: 6px; font-size: 12px; font-weight: 500; text-decoration: none; border: 1px solid var(--border-medium); transition: background var(--transition-fast);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+            View on GitHub
+          </a>
+          ` : ''}
+          <button class="chunk-preview-close" id="chunk-preview-close" aria-label="Close preview">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="chunk-preview-body">
-        <pre><code${langAttr}>${escapeHtml(source.content || 'No content available')}</code></pre>
+      <div class="chunk-preview-body" style="display: flex; background: #f6f8fa; border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); overflow-y: auto; overflow-x: hidden;">
+        <div style="padding: 16px 0 16px 16px; text-align: right; color: #6e7681; user-select: none; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; border-right: 1px solid #d0d7de; padding-right: 12px;">
+          ${lineNumbersHtml}
+        </div>
+        <pre style="flex: 1; padding-left: 12px; margin: 0;"><code${langAttr}>${escapeHtml(source.content || 'No content available')}</code></pre>
       </div>
     </div>
   `;
@@ -332,19 +366,26 @@ function appendMessage(role, content, streaming = false) {
   const messagesEl = document.getElementById('messages');
   const div = document.createElement('div');
   div.className = `message ${role}`;
-  const avatarLabel = role === 'user' ? 'U' : 'AI';
+  const userSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+  const aiSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"></path></svg>`;
+  const avatarLabel = role === 'user' ? userSvg : aiSvg;
 
   div.innerHTML = `
     <div class="message-avatar">${avatarLabel}</div>
     <div class="message-body">
-      <div class="message-role">${role === 'user' ? 'You' : 'RepoChat'}</div>
       <div class="message-content">${streaming ? '' : marked.parse(content)}</div>
     </div>`;
 
   messagesEl.appendChild(div);
 
   if (!streaming && content) {
-    div.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+    div.querySelectorAll('pre code').forEach((block) => {
+      if (!block.textContent.trim()) {
+        block.parentElement.style.display = 'none';
+        return;
+      }
+      hljs.highlightElement(block);
+    });
   }
 
   scrollToBottom();
@@ -466,9 +507,17 @@ export function initApp() {
     const assistantMsgEl = appendMessage('assistant', '', true);
     const contentEl = assistantMsgEl.querySelector('.message-content');
     contentEl.innerHTML = `
-      <div class="typing-indicator">
-        <span></span><span></span><span></span>
-      </div>`;
+      <div class="typing-indicator" style="display: flex; align-items: center; gap: 4px; height: 24px; padding: 4px 0;">
+        <div class="typing-dot" style="width: 5px; height: 5px; background: var(--text-muted); border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></div>
+        <div class="typing-dot" style="width: 5px; height: 5px; background: var(--text-muted); border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></div>
+        <div class="typing-dot" style="width: 5px; height: 5px; background: var(--text-muted); border-radius: 50%; animation: typing 1.4s infinite ease-in-out both;"></div>
+      </div>
+      <style>
+        @keyframes typing {
+          0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+      </style>`;
 
     let fullResponse = '';
     let sources = [];
@@ -495,7 +544,13 @@ export function initApp() {
             } else if (event.type === 'token') {
               fullResponse += event.content;
               contentEl.innerHTML = marked.parse(fullResponse);
-              contentEl.querySelectorAll('pre code').forEach((b) => hljs.highlightElement(b));
+              contentEl.querySelectorAll('pre code').forEach((b) => {
+                if (!b.textContent.trim()) {
+                  b.parentElement.style.display = 'none';
+                  return;
+                }
+                hljs.highlightElement(b);
+              });
               scrollToBottom();
             }
           } catch { /* skip malformed events */ }
@@ -504,9 +559,52 @@ export function initApp() {
 
       // Final render
       contentEl.innerHTML = marked.parse(fullResponse);
-      contentEl.querySelectorAll('pre code').forEach((b) => hljs.highlightElement(b));
+      contentEl.querySelectorAll('pre code').forEach((b) => {
+        if (!b.textContent.trim()) {
+          b.parentElement.style.display = 'none';
+          return;
+        }
+        hljs.highlightElement(b);
+      });
 
-      // Sources
+      // Make inline code paths clickable without altering LLM's raw markdown response
+      contentEl.querySelectorAll('code').forEach(codeEl => {
+        // Skip code blocks (which are inside a <pre>)
+        if (codeEl.parentElement.tagName === 'PRE') return;
+        
+        const text = codeEl.textContent.trim();
+        const pathRegex = /^[\w.-]+\/.*?\.[\w]+$/; // Looks like a path
+        const fileRegex = /^[\w.-]+\.(?:py|js|ts|go|rs|java|cpp|c|md|css|html|json|yml|yaml|sh|txt|jsx|tsx)$/; // Looks like a file
+        
+        if (pathRegex.test(text) || fileRegex.test(text)) {
+          codeEl.classList.add('interactive-path');
+          codeEl.title = 'Click to view file';
+          
+          codeEl.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sourceChunk = sources.find(s => s.file === text || s.file.endsWith('/' + text));
+            if (sourceChunk) {
+              showChunkPreview(sourceChunk);
+            } else if (repo && repo.github_url) {
+              let url = repo.github_url.endsWith('/') ? repo.github_url.slice(0, -1) : repo.github_url;
+              if (url.endsWith('.git')) url = url.slice(0, -4);
+              
+              let cleanPath = text;
+              if (cleanPath.includes('/repos/')) {
+                const subParts = cleanPath.split('/repos/')[1].split('/');
+                subParts.shift();
+                cleanPath = subParts.join('/');
+              } else if (cleanPath.startsWith('./')) {
+                cleanPath = cleanPath.substring(2);
+              }
+              
+              window.open(`${url}/blob/main/${cleanPath}`, '_blank');
+            }
+          });
+        }
+      });
+
+      // Sources tags at bottom
       if (sources.length > 0) {
         const sourcesEl = document.createElement('div');
         sourcesEl.className = 'message-sources';

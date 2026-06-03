@@ -124,10 +124,24 @@ def chat(data: ChatRequest, current_user: str = Depends(require_auth), db: Sessi
     repo = db.query(Repo).filter(Repo.id == data.repo_id, Repo.user_id == user.id).first()
     if not repo:
         raise HTTPException(status_code=403, detail="Not authorized to access this repository")
+
+    # Load recent chat history from DB for context
+    recent_messages = (
+        db.query(Message)
+        .filter(Message.repo_id == data.repo_id)
+        .order_by(Message.created_at.desc())
+        .limit(6)
+        .all()
+    )
+    history = [
+        {"role": m.role, "content": m.content}
+        for m in reversed(recent_messages)
+    ]
+
     response = chat_with_repo(
         repo_id=data.repo_id,
         query=data.query,
-        history=data.history
+        history=history
     )
 
     return response
@@ -148,17 +162,30 @@ def chat_stream(
     repo = db.query(Repo).filter(Repo.id == repo_id, Repo.user_id == user.id).first()
     if not repo:
         raise HTTPException(status_code=403, detail="Not authorized to access this repository")
-    # 1. Save the User's query immediately
+    # 1. Load recent chat history for context
+    recent_messages = (
+        db.query(Message)
+        .filter(Message.repo_id == repo_id)
+        .order_by(Message.created_at.desc())
+        .limit(6)
+        .all()
+    )
+    history = [
+        {"role": m.role, "content": m.content}
+        for m in reversed(recent_messages)
+    ]
+
+    # 2. Save the User's query immediately
     user_message = Message(repo_id=repo_id, role="user", content=query)
     db.add(user_message)
     db.commit()
 
-    # 2. Create a wrapper generator to intercept the stream
+    # 3. Create a wrapper generator to intercept the stream
     def stream_generator():
         full_response = ""
         
         # Loop through the events coming from your chat_service
-        for event in chat_with_repo_stream(repo_id=repo_id, query=query):
+        for event in chat_with_repo_stream(repo_id=repo_id, query=query, history=history):
             yield event # Send the chunk to the frontend immediately
             
             # Extract the actual text token to build the complete AI response
