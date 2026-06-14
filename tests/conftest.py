@@ -14,6 +14,7 @@ import textwrap
 import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # ---------------------------------------------------------------------------
 # Ensure project root is on sys.path so imports like `backend.*` work
@@ -33,7 +34,11 @@ from backend.models import Repo, Chunk, Message, User  # noqa: E402, F401
 @pytest.fixture()
 def db_engine():
     """Create a disposable SQLite in-memory engine with all tables."""
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
     # SQLite needs foreign key enforcement turned on explicitly
     @event.listens_for(engine, "connect")

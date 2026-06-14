@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Ensure project root is importable
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -27,7 +28,11 @@ from backend.main import app
 # Test DB setup
 # ---------------------------------------------------------------------------
 
-TEST_ENGINE = create_engine("sqlite:///:memory:")
+TEST_ENGINE = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 
 
 @event.listens_for(TEST_ENGINE, "connect")

@@ -45,7 +45,7 @@ def _make_embeddings(n, dim=384):
     for i in range(n):
         random.seed(i)
         result.append([random.random() for _ in range(dim)])
-    return result
+    return np.array(result)
 
 
 # ---------------------------------------------------------------------------
