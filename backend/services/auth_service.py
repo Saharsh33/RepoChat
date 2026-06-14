@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 import bcrypt
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-dev-secret")
+SECRET_KEY = os.environ["JWT_SECRET_KEY"]
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 

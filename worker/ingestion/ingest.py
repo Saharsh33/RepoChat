@@ -38,6 +38,10 @@ def ingest_repo(repo_id: int):
 
         # get all files
         files = get_files(repo_path)
+        
+        MAX_FILES = int(os.getenv("MAX_REPO_FILES", "2000"))
+        if len(files) > MAX_FILES:
+            raise Exception(f"Repository exceeds the maximum allowed file count of {MAX_FILES}.")
 
         all_chunks = []
         chunk_objects = []
@@ -77,23 +81,10 @@ def ingest_repo(repo_id: int):
 
         print(f"\nTotal chunks: {len(all_chunks)}")
 
-        print("\nSaving chunks to Postgres...")
-
-        db.add_all(chunk_objects)
-
-        db.commit()
-
-        print("Chunks saved")
         repo.total_files = len(files)
         repo.total_chunks = len(all_chunks)
 
         db.commit()
-        # save chunks locally
-        os.makedirs("chunks", exist_ok=True)
-
-        with open("chunks/chunks.json", "w") as f:
-
-            json.dump(all_chunks, f, indent=2)
 
         # generate embeddings
         print("\nGenerating embeddings...")

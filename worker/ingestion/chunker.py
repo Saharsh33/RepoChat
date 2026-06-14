@@ -173,37 +173,43 @@ def chunk_code_file(file_path):
 def chunk_markdown_file(file_path):
 
     text = read_file(file_path)
-
-    pattern = r'(^## .*?$|^### .*?$)'
-
-    sections = re.split(pattern, text, flags=re.MULTILINE)
-
+    lines = text.splitlines(keepends=True)
     chunks = []
-
+    
     current_heading = ""
-
-    for section in sections:
-
-        if section.startswith("##") or section.startswith("###"):
-
-            current_heading = section.strip()
-
-            continue
-
-        if not section.strip():
-            continue
-
-        content = current_heading + "\n\n" + section.strip()
-
+    current_content = []
+    start_line = 1
+    
+    for i, line in enumerate(lines):
+        if line.startswith("## ") or line.startswith("### "):
+            if "".join(current_content).strip():
+                content = current_heading + "\n\n" + "".join(current_content).strip() if current_heading else "".join(current_content).strip()
+                chunk = {
+                    "file": file_path,
+                    "type": "markdown",
+                    "signature": current_heading,
+                    "start_line": start_line,
+                    "end_line": i,
+                    "content": content
+                }
+                chunks.append(chunk)
+            
+            current_heading = line.strip()
+            current_content = []
+            start_line = i + 1
+        else:
+            current_content.append(line)
+            
+    if "".join(current_content).strip():
+        content = current_heading + "\n\n" + "".join(current_content).strip() if current_heading else "".join(current_content).strip()
         chunk = {
             "file": file_path,
             "type": "markdown",
             "signature": current_heading,
-            "start_line": 0,
-            "end_line": 0,
+            "start_line": start_line,
+            "end_line": len(lines),
             "content": content
         }
-
         chunks.append(chunk)
 
     return chunks

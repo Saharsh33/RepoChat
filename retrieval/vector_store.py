@@ -13,6 +13,8 @@ from retrieval.schema import (
 
 from worker.embeddings.embedder import get_model
 
+_bm25_cache = {}
+
 
 def get_collection(repo_id: str):
     print("giving collection name: ", f"repo_{repo_id}")
@@ -63,6 +65,9 @@ def store_chunks(
     print(f"Collection count after insert: {count}")
 
     print("Finished storing in ChromaDB")
+
+    if repo_id in _bm25_cache:
+        del _bm25_cache[repo_id]
 
 
 def tokenize(text: str) -> List[str]:
@@ -151,12 +156,15 @@ def retrieve(
         RetrievalMode.HYBRID
     ]:
 
-        tokenized_corpus = [
-            tokenize(doc)
-            for doc in all_docs
-        ]
-
-        bm25 = BM25Okapi(tokenized_corpus)
+        if repo_id not in _bm25_cache:
+            tokenized_corpus = [
+                tokenize(doc)
+                for doc in all_docs
+            ]
+            bm25 = BM25Okapi(tokenized_corpus)
+            _bm25_cache[repo_id] = bm25
+        else:
+            bm25 = _bm25_cache[repo_id]
 
         tokenized_query = tokenize(query)
 
@@ -302,3 +310,5 @@ def retrieve_diverse(
 
 def deleteRepo(repo_id: str):
     get_client().delete_collection(name=f"repo_{repo_id}")
+    if repo_id in _bm25_cache:
+        del _bm25_cache[repo_id]
