@@ -15,7 +15,7 @@ from backend.models import Repo, Message, User
 from backend.services.auth_service import require_auth
 
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 
 
