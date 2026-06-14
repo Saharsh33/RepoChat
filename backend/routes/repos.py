@@ -3,9 +3,8 @@ import json
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from backend.database import get_db
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from worker.tasks import ingest_repo, delete_repo
 from backend.database import SessionLocal
 from backend.schemas import RepoCreate
@@ -13,8 +12,7 @@ from backend.services.repo_service import insert_repo
 from backend.services.chat_service import chat_with_repo, chat_with_repo_stream
 from backend.schemas import ChatRequest
 from backend.models import Repo, Message, User
-from fastapi.security import OAuth2PasswordRequestForm
-from backend.services.auth_service import require_auth, create_access_token
+from backend.services.auth_service import require_auth
 
 
 router = APIRouter()

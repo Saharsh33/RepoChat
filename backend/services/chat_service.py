@@ -1,6 +1,6 @@
 from retrieval.vector_store import retrieve, retrieve_diverse
 from llm.groq_client import generate_response, generate_response_stream
-from llm.prompts import SYSTEM_PROMPT, OVERVIEW_SYSTEM_PROMPT, CASUAL_SYSTEM_PROMPT
+from llm.prompts import SYSTEM_PROMPT, CASUAL_SYSTEM_PROMPT
 from llm.query_pipeline import rewrite_and_route
 import json
 

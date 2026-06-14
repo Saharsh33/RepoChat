@@ -91,7 +91,7 @@ def _route_only(query: str) -> dict:
     
     casual_keywords = ["hi", "hello", "hey", "thanks", "thank you", "great", "awesome", "ok", "okay"]
     if q_lower in casual_keywords or (len(q_lower.split()) < 3 and any(kw in q_lower for kw in casual_keywords)):
-        print(f"[QueryPipeline] Keyword match → casual")
+        print("[QueryPipeline] Keyword match → casual")
         return {"rewritten_query": query, "query_type": "casual"}
 
     overview_keywords = [
@@ -112,12 +112,12 @@ def _route_only(query: str) -> dict:
 
     for kw in overview_keywords:
         if kw in q_lower:
-            print(f"[QueryPipeline] Keyword match → overview")
+            print("[QueryPipeline] Keyword match → overview")
             return {"rewritten_query": query, "query_type": "overview"}
 
     for kw in architecture_keywords:
         if kw in q_lower:
-            print(f"[QueryPipeline] Keyword match → architecture")
+            print("[QueryPipeline] Keyword match → architecture")
             return {"rewritten_query": query, "query_type": "architecture"}
 
     return {"rewritten_query": query, "query_type": "implementation"}

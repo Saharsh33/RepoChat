@@ -1,0 +1,20 @@
+# Ruff linter configuration for RepoChat
+# Minimal rules: pyflakes (F) + pycodestyle errors (E) only
+
+line-length = 120
+
+[lint]
+select = ["E", "F"]
+ignore = [
+    "E501",   # line too long — handled separately or case-by-case
+    "E402",   # module-level import not at top — we have intentional late imports
+]
+
+exclude = [
+    "venv",
+    "backend/venv",
+    "__pycache__",
+    "node_modules",
+    "frontend",
+    ".git",
+]
