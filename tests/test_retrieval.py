@@ -5,9 +5,10 @@ Uses chromadb.EphemeralClient to avoid any persistent storage.
 Mocks the embedding function to avoid hitting the HuggingFace API.
 """
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import chromadb
+import numpy as np
 
 from retrieval.schema import ChunkSchema, ChunkType, RetrievalMode
 from retrieval.vector_store import store_chunks, retrieve, retrieve_diverse, tokenize
@@ -66,8 +67,8 @@ class TestStoreAndRetrieve:
     """Integration tests for store_chunks + retrieve using EphemeralClient."""
 
     @patch("retrieval.vector_store.get_client")
-    @patch("retrieval.vector_store.embed_query")
-    def test_store_and_retrieve_semantic(self, mock_embed_query, mock_get_client):
+    @patch("retrieval.vector_store.get_model")
+    def test_store_and_retrieve_semantic(self, mock_get_model, mock_get_client):
         """Store chunks, then retrieve them in semantic mode."""
         client = chromadb.EphemeralClient()
         mock_get_client.return_value = client
@@ -86,8 +87,10 @@ class TestStoreAndRetrieve:
         collection = client.get_collection("repo_test_repo")
         assert collection.count() == 3
 
-        # Retrieve — mock embed_query to return a fake vector
-        mock_embed_query.return_value = _fake_embedding()
+        # Retrieve — mock get_model to return a fake model
+        mock_model = MagicMock()
+        mock_model.encode.return_value = np.array([_fake_embedding()])
+        mock_get_model.return_value = mock_model
 
         results = retrieve(
             query="addition function",
@@ -101,8 +104,8 @@ class TestStoreAndRetrieve:
         assert all(hasattr(r, "content") for r in results)
 
     @patch("retrieval.vector_store.get_client")
-    @patch("retrieval.vector_store.embed_query")
-    def test_hybrid_retrieval_includes_bm25(self, mock_embed_query, mock_get_client):
+    @patch("retrieval.vector_store.get_model")
+    def test_hybrid_retrieval_includes_bm25(self, mock_get_model, mock_get_client):
         """Hybrid mode combines semantic and BM25 scores."""
         client = chromadb.EphemeralClient()
         mock_get_client.return_value = client
@@ -115,7 +118,9 @@ class TestStoreAndRetrieve:
         embeddings = _make_embeddings(3)
         store_chunks(chunks, embeddings, "hybrid_repo")
 
-        mock_embed_query.return_value = _fake_embedding()
+        mock_model = MagicMock()
+        mock_model.encode.return_value = np.array([_fake_embedding()])
+        mock_get_model.return_value = mock_model
 
         results = retrieve(
             query="login password",
@@ -131,8 +136,8 @@ class TestStoreAndRetrieve:
         assert any("login" in c for c in contents)
 
     @patch("retrieval.vector_store.get_client")
-    @patch("retrieval.vector_store.embed_query")
-    def test_retrieve_diverse_limits_per_file(self, mock_embed_query, mock_get_client):
+    @patch("retrieval.vector_store.get_model")
+    def test_retrieve_diverse_limits_per_file(self, mock_get_model, mock_get_client):
         """retrieve_diverse() respects max_per_file limit."""
         client = chromadb.EphemeralClient()
         mock_get_client.return_value = client
@@ -148,7 +153,9 @@ class TestStoreAndRetrieve:
         embeddings = _make_embeddings(5)
         store_chunks(chunks, embeddings, "diverse_repo")
 
-        mock_embed_query.return_value = _fake_embedding()
+        mock_model = MagicMock()
+        mock_model.encode.return_value = np.array([_fake_embedding()])
+        mock_get_model.return_value = mock_model
 
         results = retrieve_diverse(
             query="function",
@@ -164,13 +171,15 @@ class TestStoreAndRetrieve:
             assert count <= 2, f"File {path} has {count} results, expected <= 2"
 
     @patch("retrieval.vector_store.get_client")
-    @patch("retrieval.vector_store.embed_query")
-    def test_empty_collection_returns_empty(self, mock_embed_query, mock_get_client):
+    @patch("retrieval.vector_store.get_model")
+    def test_empty_collection_returns_empty(self, mock_get_model, mock_get_client):
         """Querying an empty collection returns empty list."""
         client = chromadb.EphemeralClient()
         mock_get_client.return_value = client
 
-        mock_embed_query.return_value = _fake_embedding()
+        mock_model = MagicMock()
+        mock_model.encode.return_value = np.array([_fake_embedding()])
+        mock_get_model.return_value = mock_model
 
         results = retrieve(
             query="anything",
@@ -181,8 +190,8 @@ class TestStoreAndRetrieve:
         assert results == []
 
     @patch("retrieval.vector_store.get_client")
-    @patch("retrieval.vector_store.embed_query")
-    def test_keyword_only_mode(self, mock_embed_query, mock_get_client):
+    @patch("retrieval.vector_store.get_model")
+    def test_keyword_only_mode(self, mock_get_model, mock_get_client):
         """Keyword-only retrieval uses BM25 without semantic scores."""
         client = chromadb.EphemeralClient()
         mock_get_client.return_value = client

@@ -23,6 +23,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from backend.database import Base  # noqa: E402
+from backend.models import Repo, Chunk, Message, User  # noqa: E402, F401
 
 
 # ---------------------------------------------------------------------------
