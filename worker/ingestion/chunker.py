@@ -1,5 +1,4 @@
 from tree_sitter_languages import get_parser
-import re
 import os
 import warnings
 

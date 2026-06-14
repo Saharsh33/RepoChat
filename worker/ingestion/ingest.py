@@ -11,7 +11,6 @@ from worker.embeddings.embedder import generate_embeddings
 from retrieval.vector_store import store_chunks
 from retrieval.schema import ChunkSchema, ChunkType
 
-import json
 import os
 import shutil
 
