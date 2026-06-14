@@ -72,7 +72,7 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated) return;
     loadRepos();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadRepos]);
 
   const loadRepos = useCallback(async () => {
     try {

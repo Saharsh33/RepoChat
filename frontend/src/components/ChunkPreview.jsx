@@ -6,11 +6,6 @@ import React, { useEffect, useRef, useContext } from 'react';
 import hljs from 'highlight.js';
 import { RepoContext } from '../App';
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
 
 export default function ChunkPreview({ source, onClose }) {
   const { selectedRepo } = useContext(RepoContext);

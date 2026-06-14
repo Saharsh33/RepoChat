@@ -6,14 +6,9 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { deleteRepo, fetchRepos } from '../api.js';
 import { ToastContext, RepoContext } from '../App';
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
 
 export default function RepoItem({ repo, onCloseSidebar }) {
-  const { selectedRepoId, setSelectedRepoId, setRepos, repos } = useContext(RepoContext);
+  const { selectedRepoId, setSelectedRepoId, setRepos } = useContext(RepoContext);
   const showToast = useContext(ToastContext);
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });

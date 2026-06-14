@@ -12,21 +12,16 @@ import ChunkPreview from './ChunkPreview';
 
 const MESSAGES_LIMIT = 20;
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
 
 export default function ChatArea() {
-  const { selectedRepoId, selectedRepo, repos, setRepos } = useContext(RepoContext);
+  const { selectedRepoId, selectedRepo, setRepos } = useContext(RepoContext);
   const showToast = useContext(ToastContext);
 
   // Chat state
   const [messages, setMessages] = useState([]); // { role, content, sources?, isHistory? }
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamContent, setStreamContent] = useState('');
-  const [streamSources, setStreamSources] = useState([]);
+
 
   // History pagination
   const [historyMessages, setHistoryMessages] = useState([]);
@@ -52,7 +47,7 @@ export default function ChatArea() {
     setCurrentSkip(0);
     setHasMore(true);
     setStreamContent('');
-    setStreamSources([]);
+
     setIsStreaming(false);
     setPreviewSource(null);
 
@@ -62,7 +57,7 @@ export default function ChatArea() {
     }
 
     return () => stopPolling();
-  }, [selectedRepoId]);
+  }, [selectedRepoId, loadHistory, selectedRepo, stopPolling]);
 
   // ---- Status polling ----
   useEffect(() => {
@@ -71,7 +66,7 @@ export default function ChatArea() {
       startPolling(selectedRepo.id);
     }
     return () => stopPolling();
-  }, [selectedRepoId]);
+  }, [selectedRepoId, selectedRepo, startPolling, stopPolling]);
 
   const startPolling = useCallback((repoId) => {
     stopPolling();
@@ -98,7 +93,7 @@ export default function ChatArea() {
         console.error('Status poll error:', err);
       }
     }, 3000);
-  }, [setRepos, showToast]);
+  }, [setRepos, showToast, stopPolling]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -151,7 +146,7 @@ export default function ChatArea() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamContent, historyMessages]);
+  }, [messages, streamContent, historyMessages, scrollToBottom]);
 
   // ---- Send message ----
   const handleSend = useCallback(async (query) => {
@@ -166,7 +161,6 @@ export default function ChatArea() {
     setMessages((prev) => [...prev, { role: 'user', content: query }]);
     setIsStreaming(true);
     setStreamContent('');
-    setStreamSources([]);
 
     let fullResponse = '';
     let sources = [];
@@ -176,9 +170,13 @@ export default function ChatArea() {
       const decoder = new TextDecoder();
       let buffer = '';
 
-      while (true) {
+      let streamDone = false;
+      while (!streamDone) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          streamDone = true;
+          break;
+        }
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
@@ -190,7 +188,6 @@ export default function ChatArea() {
             const event = JSON.parse(line.slice(6));
             if (event.type === 'sources') {
               sources = event.sources || [];
-              setStreamSources(sources);
             } else if (event.type === 'token') {
               fullResponse += event.content;
               setStreamContent(fullResponse);
@@ -207,7 +204,6 @@ export default function ChatArea() {
         { role: 'assistant', content: fullResponse, sources },
       ]);
       setStreamContent('');
-      setStreamSources([]);
     } catch (err) {
       console.error('Stream error:', err);
       setMessages((prev) => [
