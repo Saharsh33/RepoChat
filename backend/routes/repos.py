@@ -5,7 +5,7 @@ from sqlalchemy import desc
 from backend.database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from worker.tasks import ingest_repo, delete_repo
+from worker.task_runner import run_ingest, run_delete
 from backend.database import SessionLocal
 from backend.schemas import RepoCreate
 from backend.services.repo_service import insert_repo
@@ -33,7 +33,7 @@ def create_repo(
 
     # Pass the user.id to the service
     repo = insert_repo(db, data.github_url, user.id)
-    ingest_repo.delay(repo.id)
+    run_ingest(repo.id)
 
     return {
         "message": "Repository ingestion started",
@@ -83,7 +83,7 @@ def remove_repo(
     if not repo:
         raise HTTPException(status_code=404, detail="Repo not found or you do not have permission")
 
-    delete_repo.delay(repo_id)
+    run_delete(repo_id)
     return {"message": "Repository deletion started", "repo_id": repo_id}
 
 @router.get("/repos/{repo_id}/status")

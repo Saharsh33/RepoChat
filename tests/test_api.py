@@ -161,10 +161,9 @@ class TestRepoEndpoints:
         assert res.status_code == 200
         assert res.json() == []
 
-    @patch("backend.routes.repos.ingest_repo")
+    @patch("backend.routes.repos.run_ingest")
     def test_create_repo_authenticated(self, mock_ingest, client):
         """Authenticated user can create a repo."""
-        mock_ingest.delay = lambda *a, **kw: None
 
         token = _register_user(client)
         res = client.post(
@@ -177,10 +176,9 @@ class TestRepoEndpoints:
         assert data["message"] == "Repository ingestion started"
         assert "repo_id" in data
 
-    @patch("backend.routes.repos.ingest_repo")
+    @patch("backend.routes.repos.run_ingest")
     def test_list_repos_after_creation(self, mock_ingest, client):
         """After creating a repo, it appears in the list."""
-        mock_ingest.delay = lambda *a, **kw: None
 
         token = _register_user(client)
         client.post(
@@ -194,10 +192,9 @@ class TestRepoEndpoints:
         assert len(repos) == 1
         assert repos[0]["repo_name"] == "myrepo"
 
-    @patch("backend.routes.repos.ingest_repo")
+    @patch("backend.routes.repos.run_ingest")
     def test_repo_status_endpoint(self, mock_ingest, client):
         """GET /api/repos/{id}/status returns repo details."""
-        mock_ingest.delay = lambda *a, **kw: None
 
         token = _register_user(client)
         create_res = client.post(
@@ -217,10 +214,9 @@ class TestRepoEndpoints:
         res = client.get("/api/repos/99999/status", headers=_auth_headers(token))
         assert res.status_code == 404
 
-    @patch("backend.routes.repos.ingest_repo")
+    @patch("backend.routes.repos.run_ingest")
     def test_repos_isolated_per_user(self, mock_ingest, client):
         """User A cannot see User B's repos."""
-        mock_ingest.delay = lambda *a, **kw: None
 
         token_a = _register_user(client, "user_a", "pass")
         token_b = _register_user(client, "user_b", "pass")
