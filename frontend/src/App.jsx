@@ -69,11 +69,6 @@ export default function App() {
   }, []);
 
   // ---- Load repos when authenticated ----
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    loadRepos();
-  }, [isAuthenticated, loadRepos]);
-
   const loadRepos = useCallback(async () => {
     try {
       const data = await fetchRepos();
@@ -83,6 +78,12 @@ export default function App() {
       showToast('Could not load repositories', 'error');
     }
   }, [showToast]);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    loadRepos();
+  }, [isAuthenticated, loadRepos]);
+
+  
 
   // ---- Auth handlers ----
   const handleLoginSuccess = useCallback(() => {
